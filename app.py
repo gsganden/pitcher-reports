@@ -19,8 +19,7 @@ def index():
         image_file = pitcher.lower()
         image_file = image_file.split()
         image_file = '_'.join(image_file) + '.png'
-
-        return render_template('results.html', image_file = image_file)
+        return render_template('results.html', pitcher = pitcher, image_file = image_file)
 
 if __name__ == '__main__':
     app.run(port=33508)
