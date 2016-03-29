@@ -6,11 +6,11 @@ from bokeh.plotting import figure, output_notebook, output_file, save
 
 app = Flask(__name__)
 
-# @app.route('/')
-# def main():
-#     return redirect('/index')
+@app.route('/')
+def main():
+    return redirect('/index')
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 def index():
     if request.method == 'GET':
         return render_template('index.html')
