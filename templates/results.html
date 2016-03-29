@@ -1,0 +1,27 @@
+<!doctype html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Scouting Report Generator</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="https://cdn.pydata.org/bokeh/release/bokeh-0.11.1.min.css" type="text/css" />
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="https://cdn.pydata.org/bokeh/release/bokeh-0.11.1.min.js"></script>
+        <script type="text/javascript">
+            Bokeh.set_log_level("info");
+        </script>
+    </head>
+    <body>
+        <div>
+            <h1>
+                Pitches thrown by {{pitcher}} in 2015 <br />
+                <p>
+                    <img src="{{ url_for('static', filename = image_file) }}" alt="" style="width:1000;height:800px;">
+                </p>
+                <a href="../index">Back</a>
+            </h1>
+        </div>
+    </body>
+</html>
