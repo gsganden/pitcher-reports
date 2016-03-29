@@ -23,4 +23,4 @@ def index():
         return render_template('results.html', image_file = image_file)
 
 if __name__ == '__main__':
-    app.run(port=33508, debug = True)
+    app.run(port=33508)
