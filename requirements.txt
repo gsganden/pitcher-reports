@@ -17,3 +17,4 @@ six==1.10.0
 tornado==4.3
 Werkzeug==0.11.4
 gunicorn==19.4.5
+psycopg==2.6.1
