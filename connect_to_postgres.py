@@ -43,7 +43,7 @@ def run_query(query):
 
     return result
 
-query = "SELECT * FROM pitches LIMIT 10;"
+query = "SELECT * FROM games LIMIT 10;"
 
 query_result = run_query(query)
 
