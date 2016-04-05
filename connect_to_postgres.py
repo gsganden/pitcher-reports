@@ -14,6 +14,8 @@ password=url.password,
 host=url.hostname,
 port=url.port
 
+print database_url
+
 engine = sqlalchemy.create_engine('postgresql+psycopg2://%s:%s@%s:%s/%s' % (user, password, host, port, database))
 
 conn = engine.connect()
