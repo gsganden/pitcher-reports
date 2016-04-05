@@ -12,7 +12,7 @@ database=url.path[3:-3],
 user=url.username[2:-3],
 password=url.password[2:-3],
 host=url.hostname[2:-3],
-port=url.port[2:-3]
+port=url.port
 scheme = url.scheme[2:-3]
 
 print '%s://%s:%s@%s:%s/%s' % (scheme, user, password, host, port, database)
