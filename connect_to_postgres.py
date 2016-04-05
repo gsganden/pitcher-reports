@@ -8,12 +8,12 @@ import sqlalchemy
 urlparse.uses_netloc.append("postgres")
 url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
-database=url.path[1:],
-user=url.username,
-password=url.password,
-host=url.hostname,
-port=url.port
-scheme = url.scheme
+database=url.path[3:-3],
+user=url.username[2:-3],
+password=url.password[2:-3],
+host=url.hostname[2:-3],
+port=url.port[2:-3]
+scheme = url.scheme[2:-3]
 
 print '%s://%s:%s@%s:%s/%s' % (scheme, user, password, host, port, database)
 
