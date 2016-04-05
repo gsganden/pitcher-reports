@@ -1,31 +1,31 @@
-# This works on heroku
+# # This works on heroku
 
-import os
-import psycopg2
-import urlparse
-import sqlalchemy
-import pandas as pd
+# import os
+# import psycopg2
+# import urlparse
+# import sqlalchemy
+# import pandas as pd
 
-urlparse.uses_netloc.append("postgres")
-url = urlparse.urlparse(os.environ["DATABASE_URL"])
+# urlparse.uses_netloc.append("postgres")
+# url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
-database=url.path,
-user=url.username,
-password=url.password,
-host=url.hostname,
-port=url.port
-scheme = url.scheme
+# database=url.path,
+# user=url.username,
+# password=url.password,
+# host=url.hostname,
+# port=url.port
+# scheme = url.scheme
 
-engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme, user[0], password[0], host[0], port, database[0][1:]))
-conn = engine.connect()
+# engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme, user[0], password[0], host[0], port, database[0][1:]))
+# conn = engine.connect()
 
-query = "SELECT * FROM pitches LIMIT 10"
+# query = "SELECT * FROM pitches LIMIT 10"
 
-df = pd.read_sql(query, engine)
+# df = pd.read_sql(query, engine)
 
-print df
+# print df
 
-conn.close()
+# conn.close()
 
 # # This works locally
 
@@ -55,34 +55,34 @@ conn.close()
 
 # conn.close()
 
-# # This works on both
+# This works on heroku
 
-# import os
-# import psycopg2
-# import urlparse
-# import sqlalchemy
-# import pandas as pd
+import os
+import psycopg2
+import urlparse
+import sqlalchemy
+import pandas as pd
 
-# urlparse.uses_netloc.append("postgres")
-# url = urlparse.urlparse(os.environ["DATABASE_URL"])
+urlparse.uses_netloc.append("postgres")
+url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
-# database=url.path[1:],
-# user=url.username,
-# password=url.password,
-# host=url.hostname,
-# port=url.port
+database=url.path,
+user=url.username,
+password=url.password,
+host=url.hostname,
+port=url.port
+scheme = url.scheme
 
-# if host == ('localhost',):
-#     engine = sqlalchemy.create_engine('postgres://greg@localhost:5432/pitchfx')
-# else:
-#     engine = sqlalchemy.create_engine('postgresql+psycopg2://%s:%s@%s:%s/%s' % (user, password, host, port, database))
+if host == 'localhost':
+    engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme, user[0], password[0], host[0], port, database[0][1:]))
+else:
+    engine = sqlalchemy.create_engine('postgres://greg@localhost:5432/pitchfx')
+conn = engine.connect()
 
-# conn = engine.connect()
+query = "SELECT * FROM pitches LIMIT 10"
 
-# query = "SELECT * FROM pitches LIMIT 10"
+df = pd.read_sql(query, engine)
 
-# df = pd.read_sql(query, engine)
+print df
 
-# print df
-
-# conn.close()
+conn.close()
