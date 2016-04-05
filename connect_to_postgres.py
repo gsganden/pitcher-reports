@@ -13,10 +13,11 @@ user=url.username,
 password=url.password,
 host=url.hostname,
 port=url.port
+scheme = url.scheme
 
-print url
+print '%s://%s:%s@%s:%s/%s' % (scheme, user, password, host, port, database)
 
-engine = sqlalchemy.create_engine('postgresql+psycopg2://%s:%s@%s:%s/%s' % (user, password, host, port, database))
+engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme, user, password, host, port, database))
 
 conn = engine.connect()
 
