@@ -4,6 +4,7 @@ import os
 import psycopg2
 import urlparse
 import sqlalchemy
+import pandas as pd
 
 urlparse.uses_netloc.append("postgres")
 url = urlparse.urlparse(os.environ["DATABASE_URL"])
