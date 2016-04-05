@@ -8,23 +8,23 @@ import sqlalchemy
 urlparse.uses_netloc.append("postgres")
 url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
-database=url.path[0],
-user=url.username[0],
-password=url.password[0],
-host=url.hostname[0],
+database=url.path,
+user=url.username,
+password=url.password,
+host=url.hostname,
 port=url.port
-scheme = url.scheme[0]
+scheme = url.scheme
 
-print "database: ", database, type(database)
-print "user: ", user, type(user)
+print "database: ", database[0], type(database)
+print "user: ", user[0], type(user)
 print "password: ", password, type(password)
-print "host: ", host, type(host)
-print "port: ", post, type(post)
-print "scheme: ", scheme, type(scheme)
+print "host: ", host[0], type(host)
+print "port: ", post[0], type(post)
+print "scheme: ", scheme[0], type(scheme)
 
-print '%s://%s:%s@%s:%s/%s' % (scheme, user, password, host, port, database)
+print '%s://%s:%s@%s:%s/%s' % (scheme[0], user[0], password[0], host[0], port[0], database[0])
 
-engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme, user, password, host, port, database))
+engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme[0], user[0], password[0], host[0], port[0], database[0]))
 
 conn = engine.connect()
 
