@@ -15,16 +15,16 @@ host=url.hostname,
 port=url.port
 scheme = url.scheme
 
-print "database: ", database[0], type(database)
-print "user: ", user[0], type(user)
-print "password: ", password, type(password)
-print "host: ", host[0], type(host)
-print "port: ", post[0], type(post)
-print "scheme: ", scheme[0], type(scheme)
+print "database: ", database[0], type(database[0])
+print "user: ", user[0], type(user[0])
+print "password: ", password[0], type(password[0])
+print "host: ", host[0], type(host[0])
+print "port: ", port, type(port)
+print "scheme: ", scheme[0], type(scheme[0])
 
-print '%s://%s:%s@%s:%s/%s' % (scheme[0], user[0], password[0], host[0], port[0], database[0])
+print '%s://%s:%s@%s:%s/%s' % (scheme[0], user[0], password[0], host[0], port, database[0])
 
-engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme[0], user[0], password[0], host[0], port[0], database[0]))
+engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme[0], user[0], password[0], host[0], port, database[0]))
 
 conn = engine.connect()
 
