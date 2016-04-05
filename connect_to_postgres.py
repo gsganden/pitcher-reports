@@ -1,50 +1,87 @@
-import os
-import psycopg2
-import urlparse
+# # This works on heroku
+
+# import os
+# import psycopg2
+# import urlparse
+# import sqlalchemy
 
 # urlparse.uses_netloc.append("postgres")
 # url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
-# conn = psycopg2.connect(
-#     database=url.path[1:],
-#     user=url.username,
-#     password=url.password,
-#     host=url.hostname,
-#     port=url.port
-# )
+# database=url.path[1:],
+# user=url.username,
+# password=url.password,
+# host=url.hostname,
+# port=url.port
 
-# cur = conn.cursor()
+# engine = sqlalchemy.create_engine('postgresql+psycopg2://%s:%s@%s:%s/%s' % (user, password, host, port, database))
 
-# cur.execute("SELECT * FROM pitches LIMIT 10;")
-# print cur.fetchone()
+# conn = engine.connect()
 
-# cur.close()
+# query = "SELECT * FROM pitches LIMIT 10"
+
+# df = pd.read_sql(query, engine)
+
 # conn.close()
 
-def run_query(query):
-    urlparse.uses_netloc.append("postgres")
-    url = urlparse.urlparse(os.environ["DATABASE_URL"])
+# # This works locally
 
-    conn = psycopg2.connect(
-        database=url.path[1:],
-        user=url.username,
-        password=url.password,
-        host=url.hostname,
-        port=url.port
-    )
+# import os
+# import psycopg2
+# import urlparse
+# import sqlalchemy
+# import pandas as pd
 
-    cur = conn.cursor()
+# urlparse.uses_netloc.append("postgres")
+# url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
-    cur.execute(query)
-    result = cur.fetchone()
+# database=url.path[1:],
+# user=url.username,
+# password=url.password,
+# host=url.hostname,
+# port=url.port
 
-    cur.close()
-    conn.close()
+# engine = sqlalchemy.create_engine('postgres://greg@localhost:5432/pitchfx')
+# conn = engine.connect()
 
-    return result
+# query = "SELECT * FROM pitches LIMIT 10"
 
-query = "SELECT * FROM games LIMIT 10;"
+# df = pd.read_sql(query, engine)
 
-query_result = run_query(query)
+# print df
 
-print query_result
+# conn.close()
+
+# This works on both
+
+import os
+import psycopg2
+import urlparse
+import sqlalchemy
+import pandas as pd
+
+urlparse.uses_netloc.append("postgres")
+url = urlparse.urlparse(os.environ["DATABASE_URL"])
+
+database=url.path[1:],
+user=url.username,
+password=url.password,
+host=url.hostname,
+port=url.port
+
+print host
+
+if host == ('localhost',):
+    engine = sqlalchemy.create_engine('postgres://greg@localhost:5432/pitchfx')
+else:
+    engine = sqlalchemy.create_engine('postgresql+psycopg2://%s:%s@%s:%s/%s' % (user, password, host, port, database))
+
+conn = engine.connect()
+
+query = "SELECT * FROM pitches LIMIT 10"
+
+df = pd.read_sql(query, engine)
+
+print df
+
+conn.close()
