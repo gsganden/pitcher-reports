@@ -24,7 +24,7 @@ print "scheme: ", scheme, type(scheme[0])
 
 print '%s://%s:%s@%s:%s/%s' % (scheme, user[0], password[0], host[0], port, database[0])
 
-engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme, user[0], password[0], host[0], port, database[0]))
+engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' % (scheme, user[0], password[0], host[0], port, database[0][1:]))
 
 conn = engine.connect()
 
