@@ -3,7 +3,7 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
-        <title>Scouting Report Generator</title>
+        <title>Pitcher Reports</title>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="https://cdn.pydata.org/bokeh/release/bokeh-0.11.1.min.css" type="text/css" />
@@ -16,7 +16,7 @@
     <body>
         <div>
             <h1>
-                {{result}}
+                {{ plot|safe }}
                 <a href="../index">Back</a>
             </h1>
         </div>
