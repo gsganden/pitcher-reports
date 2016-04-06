@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from sklearn.cluster import KMeans
 from matplotlib.colors import Normalize
 import sqlalchemy
 import os
