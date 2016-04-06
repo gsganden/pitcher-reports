@@ -1,16 +1,12 @@
 from flask import Flask, render_template, request, redirect
 import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
 from matplotlib.colors import Normalize
-import sqlalchemy
-import os
-import psycopg2
-import urlparse
 from bokeh.plotting import figure, output_notebook, output_file, save
 from bokeh.models import Range1d, FixedTicker
 from bokeh.io import gridplot
 from bs4 import BeautifulSoup
+import numpy as np
+import pandas as pd
 import sqlalchemy
 import os
 import psycopg2
