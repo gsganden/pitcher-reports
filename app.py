@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, make_response
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from bokeh.plotting import figure, output_file, save
@@ -8,11 +8,29 @@ from bs4 import BeautifulSoup
 import numpy as np
 import pandas as pd
 import sqlalchemy
+import seaborn as sns
+import matplotlib.gridspec as gridspec
+from sklearn.mixture import GMM
+from matplotlib.ticker import NullFormatter
+
+
+app = Flask(__name__)
 import os
 import urlparse
 
-app = Flask(__name__)
+urlparse.uses_netloc.append("postgres")
+url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
+database = url.path,
+user = url.username,
+password = url.password,
+host = url.hostname,
+port = url.port
+scheme = url.scheme
+
+engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' %
+                                  (scheme, user[0], password[0], host[0],
+                                   port, database[0][1:]))
 
 @app.route('/')
 def main():
@@ -26,103 +44,135 @@ def index():
     else:
         pitcher = request.form['pitcher']
         season = request.form['season']
+        eliasid, throws = get_eliasid_throws(pitcher)
+        data = get_data(pitcher, season, eliasid, throws)
         return render_template('results.html',
-                               plot=get_results(plot(get_data(pitcher,
-                                                              season))),
+                               movement_plot=plot_movement(data, pitcher, season),
                                pitcher=pitcher,
                                season=season)
 
 
-def get_data(pitcher_name, season):
-    urlparse.uses_netloc.append("postgres")
-    url = urlparse.urlparse(os.environ["DATABASE_URL"])
+def get_eliasid_throws(pitcher):
+    query = '''
+            SELECT eliasid, throws
+            FROM players
+            WHERE first = '%s'
+            AND last = '%s'
+            ''' % (pitcher.split()[0], pitcher.split()[1])
 
-    database = url.path,
-    user = url.username,
-    password = url.password,
-    host = url.hostname,
-    port = url.port
-    scheme = url.scheme
+    return pd.read_sql(query, engine).values[0]
 
-    engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' %
-                                      (scheme, user[0], password[0], host[0],
-                                       port, database[0][1:]))
 
+def get_data(pitcher_name, season, eliasid, throws):
     query = '''
         SELECT pitch_type,
             start_speed,
             pfx_x,
-            pfx_z
+            pfx_z,
+            stand
         FROM pitches
         JOIN (
                 SELECT *
                 FROM atbats
-                WHERE pitcher = (
-                                SELECT eliasid
-                                FROM players
-                                WHERE first = '%s'
-                                AND last = '%s'
-                                )
+                WHERE pitcher = %s
             ) atbats
         ON pitches.ab_id = atbats.ab_id
         WHERE start_speed IS NOT NULL
             AND pitches.des != 'Intent Ball'
             AND sv_id > '%s0000_000000'
             AND sv_id < '%s0000_000000'
-        ''' % (pitcher_name.split()[0],
-               pitcher_name.split()[1],
+        ''' % (eliasid,
                season[-2:],
                str(int(season) + 1)[-2:])
+
     return pd.read_sql(query, engine)
 
 
-def plot(df):
+def plot_movement(data, pitcher, season):
+    gaussians = []
 
-    norm = Normalize(70, 100)
+    pitch_types = sorted(list(data['pitch_type'].unique()))
+    pitch_type_counts = data.groupby('pitch_type').size()
 
-    colors = ["#%02x%02x%02x" % (int(r), int(g), int(b)) for r, g, b,
-              _ in 255*plt.cm.inferno(norm(df['start_speed']))]
+    df = data
+    for pitch_type in pitch_types:
+        if float(df[df['pitch_type'] == pitch_type].shape[0]) / df.shape[0] < .02:
+            continue
+        
+        gmm = GMM(covariance_type = 'full')
+        
+        sub_df = df[df['pitch_type'] == pitch_type][['pfx_x', 'pfx_z', 'start_speed']]
+        gmm.fit(sub_df)
 
-    TOOLS = 'resize,crosshair,pan,wheel_zoom,box_zoom,reset,box_select,\
-             lasso_select'
+        
+        x = np.arange(-20, 20, 0.25)
+        y = np.arange(-20, 20, 0.25)
+        X, Y = np.meshgrid(x, y)
+        
+        gaussians.append(plt.mlab.bivariate_normal(X, Y, sigmax=np.sqrt(gmm._get_covars()[0][0][0]), 
+                                         sigmay=np.sqrt(gmm._get_covars()[0][1][1]), 
+                                         sigmaxy=gmm._get_covars()[0][0][1], 
+                                         mux=gmm.means_[0][0], 
+                                         muy=gmm.means_[0][1]))
 
-    p = figure(tools=TOOLS)
+    fig = plt.figure(figsize=(12,4))
+    gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 1.25]) 
 
-    p.x_range = Range1d(start=-20, end=20)
-    p.y_range = Range1d(start=-20, end=20)
-    p.xaxis.axis_label = 'Horizontal movement (catcher\'s perspective)'
-    p.yaxis.axis_label = 'Vertical movement'
+    ax1 = plt.subplot(gs[0])
+    plt.scatter(df['pfx_x'], df['pfx_z'], c=df['start_speed'], \
+                    alpha=.3, cmap='inferno', norm = Normalize(70, 100))
+    plt.xlim([-20, 20])
+    plt.ylim([-20, 20])
+    plt.yticks([-10, 0, 10])
+    plt.xticks([-10, 0, 10])
+    plt.ylabel('Vertical break')
+    plt.title('All')
+    for index in xrange(len(gaussians)):
+        plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)
 
-    p.scatter(df['pfx_x'], df['pfx_z'],
-              fill_color=colors, fill_alpha=0.6,
-              line_color=None)
+    df = data[data['stand'] == 'R']
+    ax2 = plt.subplot(gs[1])
+    plt.scatter(df['pfx_x'], df['pfx_z'], c=df['start_speed'], \
+                    alpha=.3, cmap='inferno', norm = Normalize(70, 100))
+    plt.xlim([-20, 20])
+    plt.ylim([-20, 20])
+    plt.yticks([-10, 0, 10])
+    plt.xticks([-10, 0, 10])
+    plt.xlabel('Horizontal break, catcher\'s perspective')
+    plt.title('Batter right-handed')
+    ax2.yaxis.set_major_formatter( NullFormatter() )
+    for index in xrange(len(gaussians)):
+        plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)
 
-    y = np.linspace(70.8, 99.2, 1000)
-    x = np.zeros(1000)
 
-    colors = ["#%02x%02x%02x" % (int(r), int(g), int(b)) for r, g, b,
-              _ in 255*plt.cm.inferno(Normalize()(y))]
+    df = data[data['stand'] == 'L']
+    ax3 = plt.subplot(gs[2])
+    plt.scatter(df['pfx_x'], df['pfx_z'], c=df['start_speed'], \
+                    alpha=.3, cmap='inferno', norm = Normalize(70, 100))
+    plt.xlim([-20, 20])
+    plt.ylim([-20, 20])
+    plt.yticks([-10, 0, 10])
+    plt.xticks([-10, 0, 10])
+    plt.colorbar().set_label('Velocity')
+    plt.title('Batter left-handed')
+    ax3.yaxis.set_major_formatter( NullFormatter() )
+    for index in xrange(len(gaussians)):
+        plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)
 
-    q = figure(width=140)
-    q.x_range = Range1d(start=-.5, end=.5)
-    q.y_range = Range1d(start=70, end=100)
-    q.xaxis.ticker = FixedTicker(ticks=[])
-    q.yaxis.axis_label = 'Velocity (mph)'
+    plt.tight_layout()
 
-    q.scatter(x, y, fill_color=colors, alpha=0.3, marker='square',
-              line_color=None, size=30)
-
-    r = gridplot([[p, q]])
-
-    output_file('results.html')
-
-    save(r)
-
-    return open('results.html')
+    # Make Matplotlib write to BytesIO file object and grab
+    # return the object's string
+    from io import BytesIO
+    figfile = BytesIO()
+    plt.savefig(figfile, format='png')
+    figfile.seek(0)  # rewind to beginning of file
+    import base64
+    figdata_png = base64.b64encode(figfile.getvalue())
+    return figdata_png
 
 
 def get_results(results_file):
-
     soup = BeautifulSoup(results_file, 'html.parser')
     contents = ''
     for item in soup.body.contents:
