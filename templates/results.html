@@ -15,13 +15,18 @@
     </head>
     <body>
         <div>
-            <h1>Pitches Thrown By {{pitcher}} in {{season}}</h1>
-            <p>
-                <img src="data:image/png;base64,{{ movement_plot }}">
-            </p>
-            <p>
-                <img src="data:image/png;base64,{{ selection_plot }}">
-            </p>
+            <h1>Pitches Thrown by {{pitcher}} in {{season}}</h1>
+                <h2>Repertoire</h2>
+                    <p>
+                        <img src="data:image/png;base64,{{ movement_plot }}">
+                    </p>
+                <h2>Selection, by Batter Handedness</h2>
+                    <p>
+                        Pitch types ordered by increasing velocity
+                    </p>
+                    <p>
+                        <img src="data:image/png;base64,{{ selection_plot }}">
+                    </p>
             <h1>
                 <a href="../index">Back</a>
             </h1>

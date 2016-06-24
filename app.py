@@ -32,17 +32,20 @@ engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' %
                                   (scheme, user[0], password[0], host[0],
                                    port, database[0][1:]))
 
-pitch_type_dict = dict(FA = 'Fastball',
-                       FF = '4-Seam Fastball',
-                       FT = '2-Seam Fastball',
-                       FC = 'Cutter',
-                       SL = 'Slider',
-                       CH = 'Changeup',
-                       CU = 'Curveball',
-                       KC = 'Knuckle-Curve',
-                       KN = 'Knuckleball',
-                       EP = 'Eephus')
-
+pitch_type_dict = dict(FA = 'fastball',
+                       FF = 'four-seam fastball',
+                       FT = 'two-seam fastball',
+                       FC = 'fastball (cutter)',
+                       FS = 'fastball (sinker, split-fingered)',
+                       SI = 'fastball (sinker, split-fingered)',
+                       SF = 'fastball (sinker, split-fingered)',
+                       SL = 'slider',
+                       CH = 'changeup',
+                       CB = 'curveball',
+                       CU = 'curveball',
+                       KC = 'knuckle-curve',
+                       KN = 'knuckleball',
+                       EP = 'eephus')
 
 @app.route('/')
 def main():
@@ -58,8 +61,9 @@ def index():
         season = request.form['season']
         eliasid, throws = get_eliasid_throws(pitcher)
         data = get_data(pitcher, season, eliasid, throws)
+        movement_plot=plot_movement(data)
         return render_template('results.html',
-                               movement_plot=plot_movement(data),
+                               movement_plot=movement_plot,
                                selection_plot=plot_selection(data),
                                pitcher=pitcher,
                                season=season)
@@ -89,7 +93,9 @@ def get_data(pitcher_name, season, eliasid, throws):
             start_speed,
             pfx_x,
             pfx_z,
-            stand
+            stand,
+            pitches.ball,
+            pitches.strike
         FROM pitches
         JOIN (
                 SELECT *
@@ -142,71 +148,35 @@ def plot_movement(data):
                                          mux=gmm.means_[0][0], 
                                          muy=gmm.means_[0][1]))
 
-    fig = plt.figure(figsize=(12,4))
-    gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 1.25]) 
-
-    ax1 = plt.subplot(gs[0])
+    fig = plt.figure(figsize=(8,6))
     plt.scatter(df['pfx_x'], df['pfx_z'], c=df['start_speed'],
-                alpha=.3, cmap='inferno', norm = Normalize(70, 100))
+            alpha=.3, cmap='inferno', norm = Normalize(70, 100), s=10)
     plt.xlim([-20, 20])
     plt.ylim([-20, 20])
     plt.yticks([-10, 0, 10])
     plt.xticks([-10, 0, 10])
-    plt.ylabel('Vertical break')
-    plt.title('All batters')
-    for index in xrange(len(gaussians)):
-        plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)  
-        ax1.text(gmms[index].means_[0][0], 
-                 gmms[index].means_[0][1], 
-                 pitch_type_dict[filtered_pitch_types[index]],
-                 ha='center', 
-                 va='center',
-                 color='k',
-                 size=10)
-
-    df = data[data['stand'] == 'R']
-    ax2 = plt.subplot(gs[1])
-    plt.scatter(df['pfx_x'], df['pfx_z'], c=df['start_speed'],
-                alpha=.3, cmap='inferno', norm = Normalize(70, 100))
-    plt.xlim([-20, 20])
-    plt.ylim([-20, 20])
-    plt.yticks([-10, 0, 10])
-    plt.xticks([-10, 0, 10])
-    plt.xlabel('Horizontal break, catcher\'s perspective')
-    plt.title('Batter right-handed')
-    ax2.yaxis.set_major_formatter( NullFormatter() )
-    for index in xrange(len(gaussians)):
-        plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)  
-        ax2.text(gmms[index].means_[0][0], 
-                 gmms[index].means_[0][1], 
-                 pitch_type_dict[filtered_pitch_types[index]],
-                 ha='center', 
-                 va='center',
-                 color='k',
-                 size=10)
-
-    df = data[data['stand'] == 'L']
-    ax3 = plt.subplot(gs[2])
-    plt.scatter(df['pfx_x'], df['pfx_z'], c=df['start_speed'],
-                alpha=.3, cmap='inferno', norm = Normalize(70, 100))
-    plt.xlim([-20, 20])
-    plt.ylim([-20, 20])
-    plt.yticks([-10, 0, 10])
-    plt.xticks([-10, 0, 10])
+    plt.ylabel('Vertical Break (Inches)')
+    plt.xlabel('Horizontal Break (Inches)   ')
     plt.colorbar().set_label('Velocity')
-    plt.title('Batter left-handed')
-    ax3.yaxis.set_major_formatter( NullFormatter() )
+    ax = plt.gca()
+    ax.text(.65, .98, ''.join([pitch_type + ': ' + pitch_type_dict[pitch_type] + '\n' 
+                            for pitch_type in filtered_pitch_types])[:-1],
+                            horizontalalignment='left',
+                            verticalalignment='top',
+                         transform=ax.transAxes)\
+                   .set_bbox(dict(color='w', alpha=0.3, edgecolor='k'))
+
     for index in xrange(len(gaussians)):
         plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)  
-        ax3.text(gmms[index].means_[0][0], 
+        ax.text(gmms[index].means_[0][0], 
                  gmms[index].means_[0][1], 
-                 pitch_type_dict[filtered_pitch_types[index]],
+                 filtered_pitch_types[index],
                  ha='center', 
                  va='center',
                  color='k',
-                 size=10)
-
-    plt.tight_layout()
+                 size=10,
+                 backgroundcolor='w')\
+                    .set_bbox(dict(color='w', alpha=0.3, edgecolor='k'))
 
     # Make Matplotlib write to BytesIO file object and grab
     # return the object's string
@@ -219,28 +189,75 @@ def plot_movement(data):
     return figdata_png
 
 def plot_selection(data):
-
-    fig = plt.figure(figsize=(12,4))
-    ax = fig.gca()
+    plt.figure(figsize=(8,8))
 
     pitch_type_counts = data.groupby('pitch_type').size()
     filtered_pitch_types = pitch_type_counts[pitch_type_counts > .02 * sum(pitch_type_counts)]
-    num_pitches_to_righties = float(data[data['stand'] == 'R'].shape[0])
-    num_pitches_to_lefties = float(data[data['stand'] == 'L'].shape[0])
-
-    for index, pitch_type in enumerate(list(data[data['pitch_type'].isin(filtered_pitch_types.index.values)]\
+    pitch_type_list = list(data[data['pitch_type'].isin(filtered_pitch_types.index.values)]\
                                              .groupby('pitch_type')\
                                              .agg({'start_speed': [np.size, np.mean]})['start_speed']\
                                              .sort_values(by='mean')
-                                             .index)):
-        pitch_data = data[data['pitch_type'] == pitch_type].groupby(['pitch_type', 'stand']).size()
-        plt.scatter(index, pitch_data[pitch_type]['R']/num_pitches_to_righties, color='r', marker='$R$', s=40)
-        plt.scatter(index, pitch_data[pitch_type]['L']/num_pitches_to_lefties, color='b', marker='$L$', s=40)
-        ax.text(index, -.05, pitch_type_dict[pitch_type], ha='center')
+                                             .index)
 
-    plt.ylim([0, 1])
-    plt.xticks([])
-    plt.title('Pitch distribution by batter handedness, in order of increasing velocity')
+    for plot_num in range(1,21):
+        plt.subplot(5,4,plot_num)
+        num_balls = ((plot_num - 1) // 4) - 1
+        num_strikes = ((plot_num - 1) % 4) - 1
+        pitch_data = data.copy()
+        if num_balls > -1:
+            pitch_data = pitch_data[pitch_data['ball'] == str(num_balls)]
+        if num_strikes > -1:
+            pitch_data = pitch_data[pitch_data['strike'] == str(num_strikes)]
+        num_pitches_to_righties = float(pitch_data[pitch_data['stand'] == 'R'].shape[0])
+        num_pitches_to_lefties = float(pitch_data[pitch_data['stand'] == 'L'].shape[0])
+        for index, pitch_type in enumerate(pitch_type_list):
+            filter_pitch_data = pitch_data[pitch_data['pitch_type'] == pitch_type]
+            try:
+                plt.scatter(index, 
+                            filter_pitch_data[filter_pitch_data['stand'] == 'R'].shape[0]/num_pitches_to_righties, 
+                            color='r', alpha=.5, s=10, marker = '$R$')
+            except ZeroDivisionError:
+                pass
+            try:
+                plt.scatter(index, 
+                            filter_pitch_data[filter_pitch_data['stand'] == 'L'].shape[0]/num_pitches_to_lefties, 
+                            color='b', alpha=.5, s=10, marker = '$L$')
+            except ZeroDivisionError:
+                pass
+            if plot_num > 16:
+                plt.gca().text(index, -.1, pitch_type, ha='center', fontsize=8)
+        plt.ylim([0, 1])
+        plt.xticks([])
+        if plot_num > 1:
+            plt.gca().yaxis.set_major_formatter( NullFormatter() )
+
+    plt.subplot(5,4,1)
+    plt.title('Any Strikes')
+    plt.ylabel('Any Balls')
+
+    plt.subplot(5,4,2)
+    plt.title('0 Strikes')
+
+    plt.subplot(5,4,3)
+    plt.title('1 Strike')
+
+    plt.subplot(5,4,4)
+    plt.title('2 Strikes')
+
+    plt.subplot(5,4,5)
+    plt.ylabel('0 Balls')
+
+    plt.subplot(5,4,9)
+    plt.ylabel('1 Ball')
+
+    plt.subplot(5,4,13)
+    plt.ylabel('2 Balls')
+
+    plt.subplot(5,4,17)
+    plt.ylabel('3 Balls')
+    plt.gca().text(-.25, -.2, 'Increasing velocity -->', ha='left', fontsize=8)
+        
+    plt.tight_layout()
 
     # Make Matplotlib write to BytesIO file object and grab
     # return the object's string
