@@ -1,9 +1,6 @@
 from flask import Flask, render_template, request, redirect, make_response
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
-from bokeh.plotting import figure, output_file, save
-from bokeh.models import Range1d, FixedTicker
-from bokeh.io import gridplot
 from bs4 import BeautifulSoup
 import numpy as np
 import pandas as pd
