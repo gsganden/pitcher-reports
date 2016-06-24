@@ -32,6 +32,8 @@ engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' %
                                   (scheme, user[0], password[0], host[0],
                                    port, database[0][1:]))
 
+sns.set_context('notebook')
+
 pitch_type_dict = dict(FA = 'fastball',
                        FF = 'four-seam fastball',
                        FT = 'two-seam fastball',
