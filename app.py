@@ -9,6 +9,7 @@ import seaborn as sns
 import matplotlib.gridspec as gridspec
 from sklearn.mixture import GMM
 from matplotlib.ticker import NullFormatter
+import matplotlib.patches as mpatches
 import os
 import urlparse
 
@@ -56,16 +57,19 @@ def index():
     if request.method == 'GET': 
         return render_template('index.html')
     else:
-        pitcher = request.form['pitcher']
-        season = request.form['season']
-        eliasid, throws = get_eliasid_throws(pitcher)
-        data = get_data(pitcher, season, eliasid, throws)
-        movement_plot=plot_movement(data)
-        return render_template('results.html',
-                               movement_plot=movement_plot,
-                               selection_plot=plot_selection(data),
-                               pitcher=pitcher,
-                               season=season)
+        try:
+            pitcher = request.form['pitcher']
+            season = request.form['season']
+            eliasid, throws = get_eliasid_throws(pitcher)
+            data = get_data(pitcher, season, eliasid, throws)
+            movement_plot=plot_movement(data)        
+            return render_template('results.html',
+                                   movement_plot=movement_plot,
+                                   selection_plot=plot_selection(data),
+                                   pitcher=pitcher,
+                                   season=season)
+        except IndexError:
+            return render_template('error.html')
 
 
 def get_eliasid_throws(pitcher):
@@ -188,7 +192,7 @@ def plot_movement(data):
     return figdata_png
 
 def plot_selection(data):
-    plt.figure(figsize=(8,8))
+    plt.figure(figsize=(10,6))
 
     pitch_type_counts = data.groupby('pitch_type').size()
     filtered_pitch_types = pitch_type_counts[pitch_type_counts > .02 * sum(pitch_type_counts)]
@@ -199,9 +203,9 @@ def plot_selection(data):
                                              .index)
 
     for plot_num in range(1,21):
-        plt.subplot(5,4,plot_num)
-        num_balls = ((plot_num - 1) // 4) - 1
-        num_strikes = ((plot_num - 1) % 4) - 1
+        plt.subplot(4,5,plot_num)
+        num_strikes = ((plot_num - 1) // 5) - 1
+        num_balls = ((plot_num - 1) % 5) - 1
         pitch_data = data.copy()
         if num_balls > -1:
             pitch_data = pitch_data[pitch_data['ball'] == str(num_balls)]
@@ -211,51 +215,47 @@ def plot_selection(data):
         num_pitches_to_lefties = float(pitch_data[pitch_data['stand'] == 'L'].shape[0])
         for index, pitch_type in enumerate(pitch_type_list):
             filter_pitch_data = pitch_data[pitch_data['pitch_type'] == pitch_type]
-            try:
-                plt.scatter(index, 
-                            filter_pitch_data[filter_pitch_data['stand'] == 'R'].shape[0]/num_pitches_to_righties, 
-                            color='r', alpha=.5, s=10, marker = '$R$')
-            except ZeroDivisionError:
-                pass
-            try:
-                plt.scatter(index, 
-                            filter_pitch_data[filter_pitch_data['stand'] == 'L'].shape[0]/num_pitches_to_lefties, 
-                            color='b', alpha=.5, s=10, marker = '$L$')
-            except ZeroDivisionError:
-                pass
-            if plot_num > 16:
+            plt.scatter(index, 
+                        filter_pitch_data[filter_pitch_data['stand'] == 'R'].shape[0]/num_pitches_to_righties, 
+                        color='r', alpha=.5)
+            plt.scatter(index, 
+                        filter_pitch_data[filter_pitch_data['stand'] == 'L'].shape[0]/num_pitches_to_lefties, 
+                        color='b', alpha=.5)
+            if plot_num > 15:
                 plt.gca().text(index, -.1, pitch_type, ha='center', fontsize=8)
         plt.ylim([0, 1])
         plt.xticks([])
-        if plot_num > 1:
+        if plot_num != 1:
             plt.gca().yaxis.set_major_formatter( NullFormatter() )
 
-    plt.subplot(5,4,1)
-    plt.title('Any Strikes')
-    plt.ylabel('Any Balls')
+    plt.subplot(4,5,1)
+    plt.title('Any Balls')
+    plt.ylabel('Any Strikes')
 
-    plt.subplot(5,4,2)
-    plt.title('0 Strikes')
+    plt.subplot(4,5,2)
+    plt.title('0 Balls')
 
-    plt.subplot(5,4,3)
-    plt.title('1 Strike')
+    plt.subplot(4,5,3)
+    plt.title('1 Ball')
 
-    plt.subplot(5,4,4)
-    plt.title('2 Strikes')
+    plt.subplot(4,5,4)
+    plt.title('2 Balls')
 
-    plt.subplot(5,4,5)
-    plt.ylabel('0 Balls')
+    plt.subplot(4,5,5)
+    plt.title('3 Balls')
+    red_patch = mpatches.Patch(color='red', label='Righty batter')
+    blue_patch = mpatches.Patch(color='blue', label='Lefty batter')
+    plt.legend(handles=[red_patch, blue_patch])
 
-    plt.subplot(5,4,9)
-    plt.ylabel('1 Ball')
+    plt.subplot(4,5,6)
+    plt.ylabel('0 Strikes')
 
-    plt.subplot(5,4,13)
-    plt.ylabel('2 Balls')
+    plt.subplot(4,5,11)
+    plt.ylabel('1 Strike')
 
-    plt.subplot(5,4,17)
-    plt.ylabel('3 Balls')
-    plt.gca().text(-.25, -.2, 'Increasing velocity -->', ha='left', fontsize=8)
-        
+    plt.subplot(4,5,16)
+    plt.ylabel('2 Strikes')
+
     plt.tight_layout()
 
     # Make Matplotlib write to BytesIO file object and grab
