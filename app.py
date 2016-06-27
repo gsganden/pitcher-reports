@@ -68,7 +68,7 @@ def index():
                                    selection_plot=plot_selection(data),
                                    pitcher=pitcher,
                                    season=season)
-        except IndexError:
+        except:
             return render_template('error.html')
 
 
@@ -277,4 +277,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=True)
+    app.run(port=33507, debug=False)
