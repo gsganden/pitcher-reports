@@ -66,7 +66,7 @@ def index():
                                    movement_plot=plot_movement(data, 
                                                                pitch_types),
                                    selection_plot=plot_selection(data, pitch_types),
-                                   location_plot = plot_location(data, pitch_types),
+                                   # location_plot = plot_location(data, pitch_types),
                                    pitcher=pitcher,
                                    season=season)
         except:
@@ -359,4 +359,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=True)
+    app.run(port=33507, debug=False)
