@@ -61,11 +61,12 @@ def index():
             pitcher = request.form['pitcher']
             season = request.form['season']
             eliasid, throws = get_eliasid_throws(pitcher)
-            data = get_data(pitcher, season, eliasid, throws)
-            movement_plot=plot_movement(data)        
+            data, pitch_types = get_data(pitcher, season, eliasid, throws)
             return render_template('results.html',
-                                   movement_plot=movement_plot,
-                                   selection_plot=plot_selection(data),
+                                   movement_plot=plot_movement(data, 
+                                                               pitch_types),
+                                   selection_plot=plot_selection(data, pitch_types),
+                                   location_plot = plot_location(data, pitch_types),
                                    pitcher=pitcher,
                                    season=season)
         except:
@@ -98,7 +99,9 @@ def get_data(pitcher_name, season, eliasid, throws):
             pfx_z,
             stand,
             pitches.ball,
-            pitches.strike
+            pitches.strike,
+            px,
+            (pz - sz_bot) / (sz_top - sz_bot) as pz
         FROM pitches
         JOIN (
                 SELECT *
@@ -114,29 +117,39 @@ def get_data(pitcher_name, season, eliasid, throws):
                season[-2:],
                str(int(season) + 1)[-2:])
 
-    return pd.read_sql(query, engine)
-
-
-def plot_movement(data):
-    gaussians = []
-    gmms = []
+    data = pd.read_sql(query, engine)
 
     pitch_types = sorted(list(data['pitch_type'].unique()))
-    pitch_type_counts = data.groupby('pitch_type').size()
+    # Make copy to avoid altering list while iterating over it
+    filtered_pitch_types = pitch_types[:] 
 
-    df = data
-    filtered_pitch_types = pitch_types[:]
-    pitch_type_counts = data.groupby('pitch_type').size()
-
+    # Get rid of very infrequent pitch types, which are mostly bad data
     for pitch_type in pitch_types:
-        if float(df[df['pitch_type'] == pitch_type].shape[0]) / df.shape[0] < .02:
+        if float(data[data['pitch_type'] == pitch_type].shape[0])\
+                / data.shape[0] < .02:
             filtered_pitch_types.remove(pitch_type)
+
+    pitch_types = list(data[data['pitch_type'].isin(filtered_pitch_types)]\
+                            .groupby('pitch_type')
+                            .agg({'start_speed': [np.size, np.mean]})
+                                ['start_speed']
+                            .sort_values(by='mean')
+                            .index)
+
+    return data, pitch_types
+
+
+def plot_movement(data, pitch_types):
+    gaussians = []
+    gmms = []
             
-    for pitch_type in filtered_pitch_types:
+    for pitch_type in pitch_types:
         gmm = GMM(covariance_type = 'full')
         
-        sub_df = df[df['pitch_type'] == pitch_type][['pfx_x', 'pfx_z', 'start_speed']]
-        gmm.fit(sub_df)
+        sub_data = data[data['pitch_type'] == pitch_type][['pfx_x', 
+                                                           'pfx_z',
+                                                           'start_speed']]
+        gmm.fit(sub_data)
 
         
         x = np.arange(-20, 20, 0.25)
@@ -152,7 +165,7 @@ def plot_movement(data):
                                          muy=gmm.means_[0][1]))
 
     fig = plt.figure(figsize=(8,6))
-    plt.scatter(df['pfx_x'], df['pfx_z'], c=df['start_speed'],
+    plt.scatter(data['pfx_x'], data['pfx_z'], c=data['start_speed'],
             alpha=.3, cmap='inferno', norm = Normalize(70, 100), s=10)
     plt.xlim([-20, 20])
     plt.ylim([-20, 20])
@@ -163,7 +176,7 @@ def plot_movement(data):
     plt.colorbar().set_label('Velocity')
     ax = plt.gca()
     ax.text(.65, .98, ''.join([pitch_type + ': ' + pitch_type_dict[pitch_type] + '\n' 
-                            for pitch_type in filtered_pitch_types])[:-1],
+                            for pitch_type in pitch_types])[:-1],
                             horizontalalignment='left',
                             verticalalignment='top',
                          transform=ax.transAxes)\
@@ -173,7 +186,7 @@ def plot_movement(data):
         plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)  
         ax.text(gmms[index].means_[0][0], 
                  gmms[index].means_[0][1], 
-                 filtered_pitch_types[index],
+                 pitch_types[index],
                  ha='center', 
                  va='center',
                  color='k',
@@ -191,16 +204,8 @@ def plot_movement(data):
     figdata_png = base64.b64encode(figfile.getvalue())
     return figdata_png
 
-def plot_selection(data):
+def plot_selection(data, pitch_types):
     plt.figure(figsize=(10,6))
-
-    pitch_type_counts = data.groupby('pitch_type').size()
-    filtered_pitch_types = pitch_type_counts[pitch_type_counts > .02 * sum(pitch_type_counts)]
-    pitch_type_list = list(data[data['pitch_type'].isin(filtered_pitch_types.index.values)]\
-                                             .groupby('pitch_type')\
-                                             .agg({'start_speed': [np.size, np.mean]})['start_speed']\
-                                             .sort_values(by='mean')
-                                             .index)
 
     for plot_num in range(1,21):
         plt.subplot(4,5,plot_num)
@@ -213,7 +218,7 @@ def plot_selection(data):
             pitch_data = pitch_data[pitch_data['strike'] == str(num_strikes)]
         num_pitches_to_righties = float(pitch_data[pitch_data['stand'] == 'R'].shape[0])
         num_pitches_to_lefties = float(pitch_data[pitch_data['stand'] == 'L'].shape[0])
-        for index, pitch_type in enumerate(pitch_type_list):
+        for index, pitch_type in enumerate(pitch_types):
             filter_pitch_data = pitch_data[pitch_data['pitch_type'] == pitch_type]
             plt.scatter(index, 
                         filter_pitch_data[filter_pitch_data['stand'] == 'R'].shape[0]/num_pitches_to_righties, 
@@ -268,6 +273,83 @@ def plot_selection(data):
     figdata_png = base64.b64encode(figfile.getvalue())
     return figdata_png
 
+def plot_location(data, pitch_types):
+    plt.figure(figsize = (12,7 * len(pitch_types)))
+
+    righty_data = data[data['stand'] == 'R']
+    lefty_data = data[data['stand'] == 'L']
+    pitch_type_num = -1
+    balls, strikes = -2, -2
+    for plot_num in range(1, 44 * len(pitch_types) + 1):
+        plot_index = plot_num - 1
+        if plot_index % 44 == 0: # new pitch type
+            pitch_type_num += 1
+            righty_pitch_data = righty_data[righty_data['pitch_type'] == pitch_types[pitch_type_num]]
+            lefty_pitch_data = lefty_data[lefty_data['pitch_type'] == pitch_types[pitch_type_num]]
+        if plot_index % 11 == 0: # new row
+            strikes = strikes + 1 if strikes < 2 else -1
+            strikes_righty_pitch_data = righty_pitch_data if strikes == -1\
+                                        else righty_pitch_data[righty_pitch_data['strike'] == str(strikes)]
+            strikes_lefty_pitch_data = lefty_pitch_data if strikes == -1\
+                                        else lefty_pitch_data[lefty_pitch_data['strike'] == str(strikes)]
+        if plot_index % 11 != 5:
+            plt.subplot(4 * len(pitch_types), 11, plot_num)
+            plt.plot([-.7083, .7083, .7083, -.7083, -.7083], [0, 0, 1, 1, 0]) # Strike zone
+            plt.ylim([-1.5, 2])
+            plt.xlim([-3, 3])
+            plt.xticks([3 * -.7083, -.7083, .7083, 3 * .7083])
+            ax = plt.gca()
+            ax.yaxis.set_major_formatter( NullFormatter() )
+            ax.xaxis.set_major_formatter( NullFormatter() )
+            balls = balls + 1 if balls < 3 else -1
+            if plot_index % 11 < 5:
+                balls_strikes_righty_pitch_data = strikes_righty_pitch_data if balls == -1\
+                                                 else strikes_righty_pitch_data[strikes_righty_pitch_data['ball'] == str(balls)]
+                plt.scatter(balls_strikes_righty_pitch_data['px'], 
+                            balls_strikes_righty_pitch_data['pz'], 
+                            c='r', alpha=.3, s=10)
+            if plot_index % 11 > 5:
+                balls_strikes_lefty_pitch_data = strikes_lefty_pitch_data if balls == -1\
+                                                 else strikes_lefty_pitch_data[strikes_lefty_pitch_data['ball'] == str(balls)]
+                plt.scatter(balls_strikes_lefty_pitch_data['px'], 
+                            balls_strikes_lefty_pitch_data['pz'], 
+                            c='b', alpha=.3, s=10)
+        if plot_index == 0:
+            plt.title(pitch_types[pitch_type_num] + '\n' + 'Any Balls')
+        elif plot_index == 6:
+            plt.title('Any Balls')
+        elif plot_index in [1, 7]:
+            plt.title('0 Balls')
+        elif plot_index == 2:
+            plt.title('Righty batters\n\n1 Ball')
+        elif plot_index == 8:
+            plt.title('Lefty batters\n\n1 Ball')
+        elif plot_index in [3, 9]:
+            plt.title('2 Balls')
+        elif plot_index in [4, 10]:
+            plt.title('3 Balls')
+        if plot_index % 44 == 0:
+            plt.ylabel('Any Strikes')
+            if plot_index != 0:
+                plt.title(pitch_types[pitch_type_num])
+        elif plot_index % 44 == 11:
+            plt.ylabel('0 Strikes')
+        elif plot_index % 44 == 22:
+            plt.ylabel('1 Strike')
+        elif plot_index % 44 == 33:
+            plt.ylabel('2 Strikes')
+
+    plt.tight_layout()
+
+    # Make Matplotlib write to BytesIO file object and grab
+    # return the object's string
+    from io import BytesIO
+    figfile = BytesIO()
+    plt.savefig(figfile, format='png')
+    figfile.seek(0)  # rewind to beginning of file
+    import base64
+    figdata_png = base64.b64encode(figfile.getvalue())
+    return figdata_png
 
 def get_results(results_file):
     soup = BeautifulSoup(results_file, 'html.parser')
@@ -277,4 +359,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=False)
+    app.run(port=33507, debug=True)
