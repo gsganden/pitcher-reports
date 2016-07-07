@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, make_response
+from flask import Flask, render_template, request, redirect
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from bs4 import BeautifulSoup
@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import sqlalchemy
 import seaborn as sns
-import matplotlib.gridspec as gridspec
 from sklearn.mixture import GMM
 from matplotlib.ticker import NullFormatter
 import matplotlib.patches as mpatches
@@ -32,20 +31,21 @@ engine = sqlalchemy.create_engine('%s://%s:%s@%s:%s/%s' %
 
 sns.set_context('notebook')
 
-pitch_type_dict = dict(FA = 'fastball',
-                       FF = 'four-seam fastball',
-                       FT = 'two-seam fastball',
-                       FC = 'fastball (cutter)',
-                       FS = 'fastball (sinker, split-fingered)',
-                       SI = 'fastball (sinker, split-fingered)',
-                       SF = 'fastball (sinker, split-fingered)',
-                       SL = 'slider',
-                       CH = 'changeup',
-                       CB = 'curveball',
-                       CU = 'curveball',
-                       KC = 'knuckle-curve',
-                       KN = 'knuckleball',
-                       EP = 'eephus')
+pitch_type_dict = dict(FA='fastball',
+                       FF='four-seam fastball',
+                       FT='two-seam fastball',
+                       FC='fastball (cutter)',
+                       FS='fastball (sinker, split-fingered)',
+                       SI='fastball (sinker, split-fingered)',
+                       SF='fastball (sinker, split-fingered)',
+                       SL='slider',
+                       CH='changeup',
+                       CB='curveball',
+                       CU='curveball',
+                       KC='knuckle-curve',
+                       KN='knuckleball',
+                       EP='eephus')
+
 
 @app.route('/')
 def main():
@@ -54,7 +54,7 @@ def main():
 
 @app.route('/index', methods=['GET', 'POST'])
 def index():
-    if request.method == 'GET': 
+    if request.method == 'GET':
         return render_template('index.html')
     else:
         try:
@@ -62,11 +62,21 @@ def index():
             season = request.form['season']
             eliasid, throws = get_eliasid_throws(pitcher)
             data, pitch_types = get_data(pitcher, season, eliasid, throws)
+            # Turning off location_plot--currently too slow
+            # return render_template('results.html',
+            #                        movement_plot=plot_movement(data,
+            #                                                    pitch_types),
+            #                        selection_plot=plot_selection(data,
+            #                                                      pitch_types),
+            #                        location_plot=plot_location(data,
+            #                                                    pitch_types),
+            #                        pitcher=pitcher,
+            #                        season=season)
             return render_template('results.html',
-                                   movement_plot=plot_movement(data, 
+                                   movement_plot=plot_movement(data,
                                                                pitch_types),
-                                   selection_plot=plot_selection(data, pitch_types),
-                                   # location_plot = plot_location(data, pitch_types),  # currently too slow
+                                   selection_plot=plot_selection(data,
+                                                                 pitch_types),
                                    pitcher=pitcher,
                                    season=season)
         except:
@@ -86,9 +96,12 @@ def get_eliasid_throws(pitcher):
 
 def get_data(pitcher_name, season, eliasid, throws):
     query = '''
-        SELECT 
+        SELECT
             CASE
-                WHEN pitch_type = 'SF' OR pitch_type = 'FS' OR pitch_type = 'SI'
+                WHEN
+                    pitch_type = 'SF'
+                    OR pitch_type = 'FS'
+                    OR pitch_type = 'SI'
                 THEN 'FT'
                 WHEN pitch_type = 'CB'
                 THEN 'CU'
@@ -121,7 +134,7 @@ def get_data(pitcher_name, season, eliasid, throws):
 
     pitch_types = sorted(list(data['pitch_type'].unique()))
     # Make copy to avoid altering list while iterating over it
-    filtered_pitch_types = pitch_types[:] 
+    filtered_pitch_types = pitch_types[:]
 
     # Get rid of very infrequent pitch types, which are mostly bad data
     for pitch_type in pitch_types:
@@ -129,12 +142,12 @@ def get_data(pitcher_name, season, eliasid, throws):
                 / data.shape[0] < .02:
             filtered_pitch_types.remove(pitch_type)
 
-    pitch_types = list(data[data['pitch_type'].isin(filtered_pitch_types)]\
-                            .groupby('pitch_type')
-                            .agg({'start_speed': [np.size, np.mean]})
-                                ['start_speed']
-                            .sort_values(by='mean')
-                            .index)
+    pitch_types = list(data[data['pitch_type'].isin(filtered_pitch_types)]
+                       .groupby('pitch_type')
+                       .agg({'start_speed': [np.size, np.mean]})
+                       ['start_speed']
+                       .sort_values(by='mean')
+                       .index)
 
     return data, pitch_types
 
@@ -142,31 +155,38 @@ def get_data(pitcher_name, season, eliasid, throws):
 def plot_movement(data, pitch_types):
     gaussians = []
     gmms = []
-            
+
     for pitch_type in pitch_types:
-        gmm = GMM(covariance_type = 'full')
-        
-        sub_data = data[data['pitch_type'] == pitch_type][['pfx_x', 
+        gmm = GMM(covariance_type='full')
+
+        sub_data = data[data['pitch_type'] == pitch_type][['pfx_x',
                                                            'pfx_z',
                                                            'start_speed']]
         gmm.fit(sub_data)
 
-        
         x = np.arange(-20, 20, 0.25)
         y = np.arange(-20, 20, 0.25)
         X, Y = np.meshgrid(x, y)
 
         gmms.append(gmm)
-        
-        gaussians.append(plt.mlab.bivariate_normal(X, Y, sigmax=np.sqrt(gmm._get_covars()[0][0][0]), 
-                                         sigmay=np.sqrt(gmm._get_covars()[0][1][1]), 
-                                         sigmaxy=gmm._get_covars()[0][0][1], 
-                                         mux=gmm.means_[0][0], 
+
+        gaussians\
+            .append(plt.mlab
+                       .bivariate_normal(X,
+                                         Y,
+                                         sigmax=np.sqrt(gmm
+                                                        ._get_covars()
+                                                        [0][0][0]),
+                                         sigmay=np.sqrt(gmm
+                                                        ._get_covars()
+                                                        [0][1][1]),
+                                         sigmaxy=gmm._get_covars()[0][0][1],
+                                         mux=gmm.means_[0][0],
                                          muy=gmm.means_[0][1]))
 
-    fig = plt.figure(figsize=(8,6))
+    plt.figure(figsize=(8, 6))
     plt.scatter(data['pfx_x'], data['pfx_z'], c=data['start_speed'],
-            alpha=.3, cmap='inferno', norm = Normalize(70, 100), s=10)
+                alpha=.3, cmap='inferno', norm=Normalize(70, 100), s=10)
     plt.xlim([-20, 20])
     plt.ylim([-20, 20])
     plt.yticks([-10, 0, 10])
@@ -175,24 +195,26 @@ def plot_movement(data, pitch_types):
     plt.xlabel('Horizontal Break (Inches)   ')
     plt.colorbar().set_label('Velocity')
     ax = plt.gca()
-    ax.text(.65, .98, ''.join([pitch_type + ': ' + pitch_type_dict[pitch_type] + '\n' 
-                            for pitch_type in pitch_types])[:-1],
-                            horizontalalignment='left',
-                            verticalalignment='top',
-                         transform=ax.transAxes)\
-                   .set_bbox(dict(color='w', alpha=0.3, edgecolor='k'))
+    ax.text(.65,
+            .98,
+            ''.join([pitch_type + ': ' + pitch_type_dict[pitch_type] + '\n'
+                     for pitch_type in pitch_types])[:-1],
+            horizontalalignment='left',
+            verticalalignment='top',
+            transform=ax.transAxes)\
+        .set_bbox(dict(color='w', alpha=0.3, edgecolor='k'))
 
     for index in xrange(len(gaussians)):
-        plt.contour(X, Y, gaussians[index], 3, colors='k', alpha = .3)  
-        ax.text(gmms[index].means_[0][0], 
-                 gmms[index].means_[0][1], 
-                 pitch_types[index],
-                 ha='center', 
-                 va='center',
-                 color='k',
-                 size=10,
-                 backgroundcolor='w')\
-                    .set_bbox(dict(color='w', alpha=0.3, edgecolor='k'))
+        plt.contour(X, Y, gaussians[index], 3, colors='k', alpha=.3)
+        ax.text(gmms[index].means_[0][0],
+                gmms[index].means_[0][1],
+                pitch_types[index],
+                ha='center',
+                va='center',
+                color='k',
+                size=10,
+                backgroundcolor='w')\
+            .set_bbox(dict(color='w', alpha=0.3, edgecolor='k'))
 
     # Make Matplotlib write to BytesIO file object and grab
     # return the object's string
@@ -204,11 +226,12 @@ def plot_movement(data, pitch_types):
     figdata_png = base64.b64encode(figfile.getvalue())
     return figdata_png
 
-def plot_selection(data, pitch_types):
-    plt.figure(figsize=(10,6))
 
-    for plot_num in range(1,21):
-        plt.subplot(4,5,plot_num)
+def plot_selection(data, pitch_types):
+    plt.figure(figsize=(10, 6))
+
+    for plot_num in range(1, 21):
+        plt.subplot(4, 5, plot_num)
         num_strikes = ((plot_num - 1) // 5) - 1
         num_balls = ((plot_num - 1) % 5) - 1
         pitch_data = data.copy()
@@ -216,49 +239,56 @@ def plot_selection(data, pitch_types):
             pitch_data = pitch_data[pitch_data['ball'] == str(num_balls)]
         if num_strikes > -1:
             pitch_data = pitch_data[pitch_data['strike'] == str(num_strikes)]
-        num_pitches_to_righties = float(pitch_data[pitch_data['stand'] == 'R'].shape[0])
-        num_pitches_to_lefties = float(pitch_data[pitch_data['stand'] == 'L'].shape[0])
+        num_pitches_to_righties = float(pitch_data[pitch_data['stand'] == 'R']
+                                        .shape[0])
+        num_pitches_to_lefties = float(pitch_data[pitch_data['stand'] == 'L']
+                                       .shape[0])
         for index, pitch_type in enumerate(pitch_types):
-            filter_pitch_data = pitch_data[pitch_data['pitch_type'] == pitch_type]
-            plt.scatter(index, 
-                        filter_pitch_data[filter_pitch_data['stand'] == 'R'].shape[0]/num_pitches_to_righties, 
-                        color='r', alpha=.5)
-            plt.scatter(index, 
-                        filter_pitch_data[filter_pitch_data['stand'] == 'L'].shape[0]/num_pitches_to_lefties, 
-                        color='b', alpha=.5)
+            filter_pitch_data = pitch_data[pitch_data['pitch_type'] ==
+                                           pitch_type]
+            plt.scatter(index,
+                        filter_pitch_data[filter_pitch_data['stand'] == 'R']
+                        .shape[0]/num_pitches_to_righties,
+                        color='r',
+                        alpha=.5)
+            plt.scatter(index,
+                        filter_pitch_data[filter_pitch_data['stand'] == 'L']
+                        .shape[0]/num_pitches_to_lefties,
+                        color='b',
+                        alpha=.5)
             if plot_num > 15:
                 plt.gca().text(index, -.1, pitch_type, ha='center', fontsize=8)
         plt.ylim([0, 1])
         plt.xticks([])
         if plot_num != 1:
-            plt.gca().yaxis.set_major_formatter( NullFormatter() )
+            plt.gca().yaxis.set_major_formatter(NullFormatter())
 
-    plt.subplot(4,5,1)
+    plt.subplot(4, 5, 1)
     plt.title('Any Balls')
     plt.ylabel('Any Strikes')
 
-    plt.subplot(4,5,2)
+    plt.subplot(4, 5, 2)
     plt.title('0 Balls')
 
-    plt.subplot(4,5,3)
+    plt.subplot(4, 5, 3)
     plt.title('1 Ball')
 
-    plt.subplot(4,5,4)
+    plt.subplot(4, 5, 4)
     plt.title('2 Balls')
 
-    plt.subplot(4,5,5)
+    plt.subplot(4, 5, 5)
     plt.title('3 Balls')
     red_patch = mpatches.Patch(color='red', label='Righty batter')
     blue_patch = mpatches.Patch(color='blue', label='Lefty batter')
     plt.legend(handles=[red_patch, blue_patch])
 
-    plt.subplot(4,5,6)
+    plt.subplot(4, 5, 6)
     plt.ylabel('0 Strikes')
 
-    plt.subplot(4,5,11)
+    plt.subplot(4, 5, 11)
     plt.ylabel('1 Strike')
 
-    plt.subplot(4,5,16)
+    plt.subplot(4, 5, 16)
     plt.ylabel('2 Strikes')
 
     plt.tight_layout()
@@ -273,8 +303,9 @@ def plot_selection(data, pitch_types):
     figdata_png = base64.b64encode(figfile.getvalue())
     return figdata_png
 
+
 def plot_location(data, pitch_types):
-    plt.figure(figsize = (12,7 * len(pitch_types)))
+    plt.figure(figsize=(12, 7 * len(pitch_types)))
 
     righty_data = data[data['stand'] == 'R']
     lefty_data = data[data['stand'] == 'L']
@@ -282,39 +313,48 @@ def plot_location(data, pitch_types):
     balls, strikes = -2, -2
     for plot_num in range(1, 44 * len(pitch_types) + 1):
         plot_index = plot_num - 1
-        if plot_index % 44 == 0: # new pitch type
+        if plot_index % 44 == 0:  # new pitch type
             pitch_type_num += 1
-            righty_pitch_data = righty_data[righty_data['pitch_type'] == pitch_types[pitch_type_num]]
-            lefty_pitch_data = lefty_data[lefty_data['pitch_type'] == pitch_types[pitch_type_num]]
-        if plot_index % 11 == 0: # new row
+            righty_pitch_data = righty_data[righty_data['pitch_type'] ==
+                                            pitch_types[pitch_type_num]]
+            lefty_pitch_data = lefty_data[lefty_data['pitch_type'] ==
+                                          pitch_types[pitch_type_num]]
+        if plot_index % 11 == 0:  # new row
             strikes = strikes + 1 if strikes < 2 else -1
             strikes_righty_pitch_data = righty_pitch_data if strikes == -1\
-                                        else righty_pitch_data[righty_pitch_data['strike'] == str(strikes)]
+                else righty_pitch_data[righty_pitch_data['strike'] ==
+                                       str(strikes)]
             strikes_lefty_pitch_data = lefty_pitch_data if strikes == -1\
-                                        else lefty_pitch_data[lefty_pitch_data['strike'] == str(strikes)]
+                else lefty_pitch_data[lefty_pitch_data['strike'] ==
+                                      str(strikes)]
         if plot_index % 11 != 5:
             plt.subplot(4 * len(pitch_types), 11, plot_num)
-            plt.plot([-.7083, .7083, .7083, -.7083, -.7083], [0, 0, 1, 1, 0]) # Strike zone
+            plt.plot([-.7083, .7083, .7083, -.7083, -.7083],
+                     [0, 0, 1, 1, 0])  # Strike zone
             plt.ylim([-1.5, 2])
             plt.xlim([-3, 3])
             plt.xticks([])
             plt.yticks([])
             # plt.xticks([3 * -.7083, -.7083, .7083, 3 * .7083])
             ax = plt.gca()
-            ax.yaxis.set_major_formatter( NullFormatter() )
-            ax.xaxis.set_major_formatter( NullFormatter() )
+            ax.yaxis.set_major_formatter(NullFormatter())
+            ax.xaxis.set_major_formatter(NullFormatter())
             balls = balls + 1 if balls < 3 else -1
             if plot_index % 11 < 5:
-                balls_strikes_righty_pitch_data = strikes_righty_pitch_data if balls == -1\
-                                                 else strikes_righty_pitch_data[strikes_righty_pitch_data['ball'] == str(balls)]
-                plt.scatter(balls_strikes_righty_pitch_data['px'], 
-                            balls_strikes_righty_pitch_data['pz'], 
+                balls_strikes_righty_pitch_data = \
+                    strikes_righty_pitch_data if balls == -1\
+                    else strikes_righty_pitch_data[strikes_righty_pitch_data
+                                                   ['ball'] == str(balls)]
+                plt.scatter(balls_strikes_righty_pitch_data['px'],
+                            balls_strikes_righty_pitch_data['pz'],
                             c='r', alpha=.3, s=10)
             if plot_index % 11 > 5:
-                balls_strikes_lefty_pitch_data = strikes_lefty_pitch_data if balls == -1\
-                                                 else strikes_lefty_pitch_data[strikes_lefty_pitch_data['ball'] == str(balls)]
-                plt.scatter(balls_strikes_lefty_pitch_data['px'], 
-                            balls_strikes_lefty_pitch_data['pz'], 
+                balls_strikes_lefty_pitch_data = \
+                    strikes_lefty_pitch_data if balls == -1\
+                    else strikes_lefty_pitch_data[strikes_lefty_pitch_data
+                                                  ['ball'] == str(balls)]
+                plt.scatter(balls_strikes_lefty_pitch_data['px'],
+                            balls_strikes_lefty_pitch_data['pz'],
                             c='b', alpha=.3, s=10)
         if plot_index == 0:
             plt.title(pitch_types[pitch_type_num] + '\n' + 'Any Balls')
@@ -352,6 +392,7 @@ def plot_location(data, pitch_types):
     import base64
     figdata_png = base64.b64encode(figfile.getvalue())
     return figdata_png
+
 
 def get_results(results_file):
     soup = BeautifulSoup(results_file, 'html.parser')
