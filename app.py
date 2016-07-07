@@ -66,7 +66,7 @@ def index():
                                    movement_plot=plot_movement(data, 
                                                                pitch_types),
                                    selection_plot=plot_selection(data, pitch_types),
-                                   # location_plot = plot_location(data, pitch_types),
+                                   # location_plot = plot_location(data, pitch_types),  # currently too slow
                                    pitcher=pitcher,
                                    season=season)
         except:
@@ -297,7 +297,9 @@ def plot_location(data, pitch_types):
             plt.plot([-.7083, .7083, .7083, -.7083, -.7083], [0, 0, 1, 1, 0]) # Strike zone
             plt.ylim([-1.5, 2])
             plt.xlim([-3, 3])
-            plt.xticks([3 * -.7083, -.7083, .7083, 3 * .7083])
+            plt.xticks([])
+            plt.yticks([])
+            # plt.xticks([3 * -.7083, -.7083, .7083, 3 * .7083])
             ax = plt.gca()
             ax.yaxis.set_major_formatter( NullFormatter() )
             ax.xaxis.set_major_formatter( NullFormatter() )
