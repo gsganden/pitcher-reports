@@ -18,11 +18,11 @@
             <div>
                 <h1>Pitches Thrown by {{pitcher}} in {{season}}</h1>
                     {% if 'repertoire' in plots_requested %}
-                    <h2>Pitch Repertoire</h2>
+                    <h2>Repertoire</h2>
                         <img src="data:image/png;base64,{{ repertoire_plot }}">
                     {% endif %}
                     {% if 'selection' in plots_requested %}
-                    <h2>Pitch Selection</h2>
+                    <h2>Selection</h2>
                         <p>
                             <img src="data:image/png;base64,{{ selection_plot }}">
                         </p>
@@ -31,7 +31,7 @@
                         </p>
                     {% endif %}
                     {% if 'location' in plots_requested %}
-                    <h2>Pitch Locations</h2>
+                    <h2>Locations</h2>
                         <p>
                             Displayed pitch locations are shown from the catcher's perspective. They are given relative to the official strike zone, shown as a blue rectangle, where the top and bottom of the strike zone is measured by a Pitchf/x operator at the start of each at-bat.
                         </p>

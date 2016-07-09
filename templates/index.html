@@ -9,16 +9,14 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
   </head>
   <body>
+    <center>
     <div>
         <h1>Pitcher Reports</h1>
-          <p>
-            Enter a pitcher's name and select a season in which that pitcher was active.
-          </p>
             <form id='pitcher_form' method='post' action='index' >
-              <p>
-                Pitcher name: <input type='text' name='pitcher' value='Jon Lester'/>
-              </p>
-              <p> Season:
+              <h3>Pitcher Name</h3>
+              e.g. Jon Lester <br />
+              <input type='text' name='pitcher' style="text-align:center;"/>
+              <h3>Season</h3>
               <select name="season">
                 <option value="2015">2015</option>
                 <option value="2014">2014</option>
@@ -31,13 +29,15 @@
                 <option value="2007">2007</option>
               </select>
               </p>
+              <h3>Plots</h3>
               <p>
-                <input type ='checkbox' name='repertoire' checked/>Repertoire <br />
-                <input type ='checkbox' name='selection' checked/>Selection <br />
-                <input type ='checkbox' name='location'/>Location (slow) <br />
+                <input type ='checkbox' name='repertoire' checked/> Repertoire <br />
+                <input type ='checkbox' name='selection' checked/> Selection <br />
+                <input type ='checkbox' name='location'/> Locations (slow) <br />
               </p>
                 <input type = 'submit' value='Submit' />
             </form>
     </div>
+  </center>
   </body>
 </html>
