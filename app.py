@@ -171,6 +171,8 @@ def plot_repertoire(data, pitch_types):
                 backgroundcolor='w')\
             .set_bbox(dict(color='w', alpha=0.3, edgecolor='k'))
 
+    plt.tight_layout()
+
     # Make Matplotlib write to BytesIO file object and grab
     # return the object's string
     from io import BytesIO
