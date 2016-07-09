@@ -162,7 +162,7 @@ def plot_repertoire(data, pitch_types):
     plt.xlabel('Horizontal Break (Inches)   ')
     plt.colorbar().set_label('Velocity')
     ax = plt.gca()
-    ax.text(.6,
+    ax.text(.61,
             .98,
             ''.join([pitch_type + ': ' + pitch_type_dict[pitch_type] + '\n'
                      for pitch_type in pitch_types])[:-1],
