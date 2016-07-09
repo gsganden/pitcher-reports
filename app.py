@@ -56,29 +56,21 @@ def index():
     if request.method == 'GET':
         return render_template('index.html')
     else:
-        # try:
-        pitcher = request.form['pitcher']
-        season = int(request.form['season'])
-        data, pitch_types = get_data(pitcher.lower(), season)
-        # Turning off location_plot--currently too slow
-        # return render_template('results.html',
-        #                            movement_plot=plot_movement(data,
-        #                                                        pitch_types),
-        #                            selection_plot=plot_selection(data,
-        #                                                          pitch_types),
-        #                            location_plot=plot_location(data,
-        #                                                        pitch_types),
-        #                            pitcher=pitcher,
-        #                            season=season)
-        return render_template('results.html',
+        try:
+            pitcher = request.form['pitcher']
+            season = int(request.form['season'])
+            data, pitch_types = get_data(pitcher.lower(), season)
+            return render_template('results.html',
                                    movement_plot=plot_movement(data,
                                                                pitch_types),
                                    selection_plot=plot_selection(data,
                                                                  pitch_types),
-                                   pitcher=pitcher.title(),
+                                   # location_plot=plot_location(data,
+                                                               # pitch_types),
+                                   pitcher=pitcher,
                                    season=season)
-        # except:
-            # return render_template('error.html')
+        except:
+            return render_template('error.html')
 
 
 def get_data(pitcher_name, season):
