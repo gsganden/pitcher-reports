@@ -213,16 +213,22 @@ def plot_selection(data, pitch_types):
         for index, pitch_type in enumerate(pitch_types):
             filter_pitch_data = pitch_data[pitch_data['pitch_type'] ==
                                            pitch_type]
-            plt.scatter(index,
-                        filter_pitch_data[filter_pitch_data['stand'] == 'R']
-                        .shape[0]/num_pitches_to_righties,
-                        color='r',
-                        alpha=.5)
-            plt.scatter(index,
-                        filter_pitch_data[filter_pitch_data['stand'] == 'L']
-                        .shape[0]/num_pitches_to_lefties,
-                        color='b',
-                        alpha=.5)
+            try:
+                plt.scatter(index,
+                            filter_pitch_data[filter_pitch_data['stand'] == 'R']
+                            .shape[0]/num_pitches_to_righties,
+                            color='r',
+                            alpha=.5)
+            except ZeroDivisionError:
+                pass
+            try:
+                plt.scatter(index,
+                            filter_pitch_data[filter_pitch_data['stand'] == 'L']
+                            .shape[0]/num_pitches_to_lefties,
+                            color='b',
+                            alpha=.5)
+            except ZeroDivisionError:
+                pass
             if plot_num > 15:
                 plt.gca().text(index, -.1, pitch_type, ha='center', fontsize=8)
         plt.ylim([0, 1])
@@ -367,4 +373,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=False)
+    app.run(port=33507, debug=True)
