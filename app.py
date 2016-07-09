@@ -33,10 +33,9 @@ sns.set_context('notebook')
 
 pitch_type_dict = dict(FA='fastball',
                        FF='four-seam fastball',
-                       FT='two-seam fastball',
+                       SI='sinker',
                        FC='fastball (cutter)',
                        FS='fastball (sinker, split-fingered)',
-                       SI='fastball (sinker, split-fingered)',
                        SF='fastball (sinker, split-fingered)',
                        SL='slider',
                        CH='changeup',
@@ -57,78 +56,48 @@ def index():
     if request.method == 'GET':
         return render_template('index.html')
     else:
-        try:
-            pitcher = request.form['pitcher']
-            season = request.form['season']
-            eliasid, throws = get_eliasid_throws(pitcher)
-            data, pitch_types = get_data(pitcher, season, eliasid, throws)
-            # Turning off location_plot--currently too slow
-            # return render_template('results.html',
-            #                        movement_plot=plot_movement(data,
-            #                                                    pitch_types),
-            #                        selection_plot=plot_selection(data,
-            #                                                      pitch_types),
-            #                        location_plot=plot_location(data,
-            #                                                    pitch_types),
-            #                        pitcher=pitcher,
-            #                        season=season)
-            return render_template('results.html',
+        # try:
+        pitcher = request.form['pitcher']
+        season = int(request.form['season'])
+        data, pitch_types = get_data(pitcher.lower(), season)
+        # Turning off location_plot--currently too slow
+        # return render_template('results.html',
+        #                            movement_plot=plot_movement(data,
+        #                                                        pitch_types),
+        #                            selection_plot=plot_selection(data,
+        #                                                          pitch_types),
+        #                            location_plot=plot_location(data,
+        #                                                        pitch_types),
+        #                            pitcher=pitcher,
+        #                            season=season)
+        return render_template('results.html',
                                    movement_plot=plot_movement(data,
                                                                pitch_types),
                                    selection_plot=plot_selection(data,
                                                                  pitch_types),
-                                   pitcher=pitcher,
+                                   pitcher=pitcher.title(),
                                    season=season)
-        except:
-            return render_template('error.html')
+        # except:
+            # return render_template('error.html')
 
 
-def get_eliasid_throws(pitcher):
-    query = '''
-            SELECT eliasid, throws
-            FROM players
-            WHERE first = '%s'
-            AND last = '%s'
-            ''' % (pitcher.split()[0], pitcher.split()[1])
-
-    return pd.read_sql(query, engine).values[0]
-
-
-def get_data(pitcher_name, season, eliasid, throws):
+def get_data(pitcher_name, season):
     query = '''
         SELECT
-            CASE
-                WHEN
-                    pitch_type = 'SF'
-                    OR pitch_type = 'FS'
-                    OR pitch_type = 'SI'
-                THEN 'FT'
-                WHEN pitch_type = 'CB'
-                THEN 'CU'
-                ELSE pitch_type
-            END AS pitch_type,
+            pitch_type,
             start_speed,
+            px,
+            pz,
             pfx_x,
             pfx_z,
             stand,
-            pitches.ball,
-            pitches.strike,
-            px,
-            (pz - sz_bot) / (sz_top - sz_bot) as pz
-        FROM pitches
-        JOIN (
-                SELECT *
-                FROM atbats
-                WHERE pitcher = %s
-            ) atbats
-        ON pitches.ab_id = atbats.ab_id
-        WHERE start_speed IS NOT NULL
-            AND pitches.des != 'Intent Ball'
-            AND sv_id > '%s0000_000000'
-            AND sv_id < '%s0000_000000'
-        ''' % (eliasid,
-               season[-2:],
-               str(int(season) + 1)[-2:])
+            balls,
+            strikes
+        FROM pitches_app
+        WHERE pitcher = '%s'
+            AND year = %d
+        ''' % (pitcher_name,
+               season)
 
     data = pd.read_sql(query, engine)
 
@@ -236,9 +205,9 @@ def plot_selection(data, pitch_types):
         num_balls = ((plot_num - 1) % 5) - 1
         pitch_data = data.copy()
         if num_balls > -1:
-            pitch_data = pitch_data[pitch_data['ball'] == str(num_balls)]
+            pitch_data = pitch_data[pitch_data['balls'] == num_balls]
         if num_strikes > -1:
-            pitch_data = pitch_data[pitch_data['strike'] == str(num_strikes)]
+            pitch_data = pitch_data[pitch_data['strikes'] == num_strikes]
         num_pitches_to_righties = float(pitch_data[pitch_data['stand'] == 'R']
                                         .shape[0])
         num_pitches_to_lefties = float(pitch_data[pitch_data['stand'] == 'L']
@@ -322,11 +291,9 @@ def plot_location(data, pitch_types):
         if plot_index % 11 == 0:  # new row
             strikes = strikes + 1 if strikes < 2 else -1
             strikes_righty_pitch_data = righty_pitch_data if strikes == -1\
-                else righty_pitch_data[righty_pitch_data['strike'] ==
-                                       str(strikes)]
+                else righty_pitch_data[righty_pitch_data['strikes'] == strikes]
             strikes_lefty_pitch_data = lefty_pitch_data if strikes == -1\
-                else lefty_pitch_data[lefty_pitch_data['strike'] ==
-                                      str(strikes)]
+                else lefty_pitch_data[lefty_pitch_data['strikes'] == strikes]
         if plot_index % 11 != 5:
             plt.subplot(4 * len(pitch_types), 11, plot_num)
             plt.plot([-.7083, .7083, .7083, -.7083, -.7083],
@@ -344,7 +311,7 @@ def plot_location(data, pitch_types):
                 balls_strikes_righty_pitch_data = \
                     strikes_righty_pitch_data if balls == -1\
                     else strikes_righty_pitch_data[strikes_righty_pitch_data
-                                                   ['ball'] == str(balls)]
+                                                   ['balls'] == balls]
                 plt.scatter(balls_strikes_righty_pitch_data['px'],
                             balls_strikes_righty_pitch_data['pz'],
                             c='r', alpha=.3, s=10)
@@ -352,7 +319,7 @@ def plot_location(data, pitch_types):
                 balls_strikes_lefty_pitch_data = \
                     strikes_lefty_pitch_data if balls == -1\
                     else strikes_lefty_pitch_data[strikes_lefty_pitch_data
-                                                  ['ball'] == str(balls)]
+                                                  ['balls'] == balls]
                 plt.scatter(balls_strikes_lefty_pitch_data['px'],
                             balls_strikes_lefty_pitch_data['pz'],
                             c='b', alpha=.3, s=10)
@@ -402,4 +369,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=False)
+    app.run(port=33507, debug=True)
