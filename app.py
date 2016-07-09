@@ -67,7 +67,7 @@ def index():
                                                                  pitch_types),
                                    # location_plot=plot_location(data,
                                                                # pitch_types),
-                                   pitcher=pitcher,
+                                   pitcher=pitcher.title(),
                                    season=season)
         except:
             return render_template('error.html')
