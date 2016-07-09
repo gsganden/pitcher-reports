@@ -59,24 +59,12 @@ def index():
             data, pitch_types = get_data(pitcher.lower(), season)
         except:
             return render_template('error.html')
-        plots_requested = []
-        repertoire_plot, selection_plot, location_plot = '', '', ''
-        if request.form.get('repertoire') == 'on':
-            repertoire_plot = plot_repertoire(data, pitch_types)
-            plots_requested.append('repertoire')
-        if request.form.get('selection') == 'on':
-            selection_plot = plot_selection(data, pitch_types)
-            plots_requested.append('selection')
-        if request.form.get('location') == 'on':
-            location_plot = plot_location(data, pitch_types)
-            plots_requested.append('location')
         return render_template('results.html',
-                               repertoire_plot=repertoire_plot,
-                               selection_plot=selection_plot,
-                               location_plot=location_plot,
+                               repertoire_plot=plot_repertoire(data, pitch_types),
+                               selection_plot=plot_selection(data, pitch_types),
+                               location_plot=plot_location(data, pitch_types),
                                pitcher=pitcher.title(),
-                               season=season,
-                               plots_requested=plots_requested)
+                               season=season)
 
 
 def get_data(pitcher_name, season):
@@ -280,79 +268,43 @@ def plot_selection(data, pitch_types):
 
 
 def plot_location(data, pitch_types):
-    plt.figure(figsize=(12, 7 * len(pitch_types)))
+    plt.figure(figsize=(3, 2*len(pitch_types)))
 
     righty_data = data[data['stand'] == 'R']
     lefty_data = data[data['stand'] == 'L']
     pitch_type_num = -1
-    balls, strikes = -2, -2
-    for plot_num in range(1, 44 * len(pitch_types) + 1):
+    for plot_num in range(1, 2 * len(pitch_types) + 1):
         plot_index = plot_num - 1
-        if plot_index % 44 == 0:  # new pitch type
+        if plot_index % 2 == 0:  # new pitch type
             pitch_type_num += 1
             righty_pitch_data = righty_data[righty_data['pitch_type'] ==
                                             pitch_types[pitch_type_num]]
             lefty_pitch_data = lefty_data[lefty_data['pitch_type'] ==
                                           pitch_types[pitch_type_num]]
-        if plot_index % 11 == 0:  # new row
-            strikes = strikes + 1 if strikes < 2 else -1
-            strikes_righty_pitch_data = righty_pitch_data if strikes == -1\
-                else righty_pitch_data[righty_pitch_data['strikes'] == strikes]
-            strikes_lefty_pitch_data = lefty_pitch_data if strikes == -1\
-                else lefty_pitch_data[lefty_pitch_data['strikes'] == strikes]
-        if plot_index % 11 != 5:
-            plt.subplot(4 * len(pitch_types), 11, plot_num)
-            plt.plot([-.7083, .7083, .7083, -.7083, -.7083],
-                     [0, 0, 1, 1, 0])  # Strike zone
-            plt.ylim([-1.5, 2])
-            plt.xlim([-3, 3])
-            plt.xticks([])
-            plt.yticks([])
-            # plt.xticks([3 * -.7083, -.7083, .7083, 3 * .7083])
-            ax = plt.gca()
-            ax.yaxis.set_major_formatter(NullFormatter())
-            ax.xaxis.set_major_formatter(NullFormatter())
-            balls = balls + 1 if balls < 3 else -1
-            if plot_index % 11 < 5:
-                balls_strikes_righty_pitch_data = \
-                    strikes_righty_pitch_data if balls == -1\
-                    else strikes_righty_pitch_data[strikes_righty_pitch_data
-                                                   ['balls'] == balls]
-                plt.scatter(balls_strikes_righty_pitch_data['px'],
-                            balls_strikes_righty_pitch_data['pz'],
-                            c='r', alpha=.3, s=10)
-            if plot_index % 11 > 5:
-                balls_strikes_lefty_pitch_data = \
-                    strikes_lefty_pitch_data if balls == -1\
-                    else strikes_lefty_pitch_data[strikes_lefty_pitch_data
-                                                  ['balls'] == balls]
-                plt.scatter(balls_strikes_lefty_pitch_data['px'],
-                            balls_strikes_lefty_pitch_data['pz'],
-                            c='b', alpha=.3, s=10)
+        plt.subplot(len(pitch_types), 2, plot_num)
+        plt.plot([-.7083, .7083, .7083, -.7083, -.7083],
+                 [0, 0, 1, 1, 0])  # Strike zone
+        plt.ylim([-1.5, 2])
+        plt.xlim([-3, 3])
+        plt.xticks([])
+        plt.yticks([])
+        ax = plt.gca()
+        ax.yaxis.set_major_formatter(NullFormatter())
+        ax.xaxis.set_major_formatter(NullFormatter())
+        if plot_num % 2 == 1:
+            plt.scatter(righty_pitch_data['px'],
+                        righty_pitch_data['pz'],
+                        c='r', alpha=.2, s=10)
+            plt.ylabel(pitch_types[pitch_type_num], rotation=0)
+            ax.yaxis.labelpad = 15
+        else:
+            plt.scatter(lefty_pitch_data['px'],
+                        lefty_pitch_data['pz'],
+                        c='b', alpha=.2, s=10)
         if plot_index == 0:
-            plt.title(pitch_types[pitch_type_num] + '\n' + 'Any Balls')
-        elif plot_index == 6:
-            plt.title('Any Balls')
-        elif plot_index in [1, 7]:
-            plt.title('0 Balls')
-        elif plot_index == 2:
-            plt.title('Righty batters\n\n1 Ball')
-        elif plot_index == 8:
-            plt.title('Lefty batters\n\n1 Ball')
-        elif plot_index in [3, 9]:
-            plt.title('2 Balls')
-        elif plot_index in [4, 10]:
-            plt.title('3 Balls')
-        if plot_index % 44 == 0:
-            plt.ylabel('Any Strikes')
-            if plot_index != 0:
-                plt.title(pitch_types[pitch_type_num])
-        elif plot_index % 44 == 11:
-            plt.ylabel('0 Strikes')
-        elif plot_index % 44 == 22:
-            plt.ylabel('1 Strike')
-        elif plot_index % 44 == 33:
-            plt.ylabel('2 Strikes')
+            plt.title('Righty batters')
+        elif plot_index == 1:
+            plt.title('Lefty batters')
 
     plt.tight_layout()
 
