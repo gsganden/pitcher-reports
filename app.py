@@ -35,11 +35,8 @@ pitch_type_dict = dict(FA='fastball',
                        FF='four-seam fastball',
                        SI='sinker',
                        FC='fastball (cutter)',
-                       FS='fastball (sinker, split-fingered)',
-                       SF='fastball (sinker, split-fingered)',
                        SL='slider',
                        CH='changeup',
-                       CB='curveball',
                        CU='curveball',
                        KC='knuckle-curve',
                        KN='knuckleball',
@@ -56,21 +53,30 @@ def index():
     if request.method == 'GET':
         return render_template('index.html')
     else:
+        pitcher = request.form['pitcher']
+        season = int(request.form['season'])
         try:
-            pitcher = request.form['pitcher']
-            season = int(request.form['season'])
             data, pitch_types = get_data(pitcher.lower(), season)
-            return render_template('results.html',
-                                   movement_plot=plot_movement(data,
-                                                               pitch_types),
-                                   selection_plot=plot_selection(data,
-                                                                 pitch_types),
-                                   # location_plot=plot_location(data,
-                                                               # pitch_types),
-                                   pitcher=pitcher.title(),
-                                   season=season)
         except:
             return render_template('error.html')
+        plots_requested = []
+        repertoire_plot, selection_plot, location_plot = '', '', ''
+        if request.form.get('repertoire') == 'on':
+            repertoire_plot=plot_repertoire(data, pitch_types)
+            plots_requested.append('repertoire')
+        if request.form.get('selection') == 'on':
+            selection_plot=plot_selection(data, pitch_types)
+            plots_requested.append('selection')
+        if request.form.get('location') == 'on':
+            location_plot=plot_location(data, pitch_types)
+            plots_requested.append('location')
+        return render_template('results.html',
+                               repertoire_plot=repertoire_plot,
+                               selection_plot=selection_plot,
+                               location_plot=location_plot,
+                               pitcher=pitcher.title(),
+                               season=season,
+                               plots_requested=plots_requested)
 
 
 def get_data(pitcher_name, season):
@@ -113,7 +119,7 @@ def get_data(pitcher_name, season):
     return data, pitch_types
 
 
-def plot_movement(data, pitch_types):
+def plot_repertoire(data, pitch_types):
     gaussians = []
     gmms = []
 
@@ -361,4 +367,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=False)
+    app.run(port=33507, debug=True)
