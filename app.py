@@ -62,13 +62,13 @@ def index():
         plots_requested = []
         repertoire_plot, selection_plot, location_plot = '', '', ''
         if request.form.get('repertoire') == 'on':
-            repertoire_plot=plot_repertoire(data, pitch_types)
+            repertoire_plot = plot_repertoire(data, pitch_types)
             plots_requested.append('repertoire')
         if request.form.get('selection') == 'on':
-            selection_plot=plot_selection(data, pitch_types)
+            selection_plot = plot_selection(data, pitch_types)
             plots_requested.append('selection')
         if request.form.get('location') == 'on':
-            location_plot=plot_location(data, pitch_types)
+            location_plot = plot_location(data, pitch_types)
             plots_requested.append('location')
         return render_template('results.html',
                                repertoire_plot=repertoire_plot,
@@ -215,7 +215,8 @@ def plot_selection(data, pitch_types):
                                            pitch_type]
             try:
                 plt.scatter(index,
-                            filter_pitch_data[filter_pitch_data['stand'] == 'R']
+                            filter_pitch_data[filter_pitch_data['stand'] ==
+                                              'R']
                             .shape[0]/num_pitches_to_righties,
                             color='r',
                             alpha=.5)
@@ -223,7 +224,8 @@ def plot_selection(data, pitch_types):
                 pass
             try:
                 plt.scatter(index,
-                            filter_pitch_data[filter_pitch_data['stand'] == 'L']
+                            filter_pitch_data[filter_pitch_data['stand'] ==
+                                              'L']
                             .shape[0]/num_pitches_to_lefties,
                             color='b',
                             alpha=.5)
