@@ -42,7 +42,6 @@ pitch_type_dict = dict(FA='fastball',
                        KN='knuckleball',
                        EP='eephus')
 
-
 @app.route('/')
 def main():
     return redirect('/index')
@@ -55,10 +54,10 @@ def index():
     else:
         pitcher = request.form['pitcher']
         season = int(request.form['season'])
-        try:
-            data, pitch_types = get_data(pitcher.lower(), season)
-        except:
-            return render_template('error.html')
+        # try:
+        data, pitch_types = get_data(pitcher.lower(), season)
+        # except:
+            # return render_template('error.html')
         return render_template('results.html',
                                repertoire_plot=plot_repertoire(data, pitch_types),
                                selection_plot=plot_selection(data, pitch_types),
@@ -67,23 +66,13 @@ def index():
                                season=season)
 
 
-def get_data(pitcher_name, season):
+def get_data(pitcher, season):
     query = '''
-        SELECT
-            pitch_type,
-            start_speed,
-            px,
-            pz,
-            pfx_x,
-            pfx_z,
-            stand,
-            balls,
-            strikes
-        FROM pitches_app
-        WHERE pitcher = '%s'
-            AND year = %d
-        ''' % (pitcher_name,
-               season)
+            SELECT *
+            FROM pitches_app
+            WHERE pitcher = '%s'
+                AND year = %s
+            ''' % (pitcher, season)
 
     data = pd.read_sql(query, engine)
 
@@ -222,7 +211,7 @@ def plot_selection(data, pitch_types):
             except ZeroDivisionError:
                 pass
             if plot_num > 15:
-                plt.gca().text(index, -.1, pitch_type, ha='center', fontsize=8)
+                plt.gca().text(index, -.15, pitch_type, ha='center', fontsize=8)
         plt.ylim([0, 1])
         plt.xticks([])
         if plot_num != 1:
@@ -329,4 +318,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=False)
+    app.run(port=33507, debug=True)
