@@ -174,7 +174,7 @@ def plot_repertoire(data, pitch_types):
 
 
 def plot_selection(data, pitch_types):
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(9, 6))
 
     for plot_num in range(1, 21):
         plt.subplot(4, 5, plot_num)
@@ -211,7 +211,7 @@ def plot_selection(data, pitch_types):
             except ZeroDivisionError:
                 pass
             if plot_num > 15:
-                plt.gca().text(index, -.15, pitch_type, ha='center', fontsize=8)
+                plt.gca().text(index, -.1, pitch_type, ha='center', fontsize=8)
         plt.ylim([0, 1])
         plt.xticks([])
         if plot_num != 1:
