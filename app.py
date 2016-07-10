@@ -174,7 +174,7 @@ def plot_repertoire(data, pitch_types):
 
 
 def plot_selection(data, pitch_types):
-    plt.figure(figsize=(9, 6))
+    plt.figure(figsize=(10, 6))
 
     for plot_num in range(1, 21):
         plt.subplot(4, 5, plot_num)
