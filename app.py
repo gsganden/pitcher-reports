@@ -54,10 +54,10 @@ def index():
     else:
         pitcher = request.form['pitcher']
         season = int(request.form['season'])
-        # try:
-        data, pitch_types = get_data(pitcher.lower(), season)
-        # except:
-            # return render_template('error.html')
+        try:
+            data, pitch_types = get_data(pitcher.lower(), season)
+        except:
+            return render_template('error.html')
         return render_template('results.html',
                                repertoire_plot=plot_repertoire(data, pitch_types),
                                selection_plot=plot_selection(data, pitch_types),
@@ -318,4 +318,4 @@ def get_results(results_file):
     return contents
 
 if __name__ == '__main__':
-    app.run(port=33507, debug=True)
+    app.run(port=33507, debug=False)
